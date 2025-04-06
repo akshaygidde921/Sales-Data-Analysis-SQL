@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS walmart;
 
 USE walmart;
 
-CREATE TABLE sales(
+CREATE TABLE IF NOT EXISTS sales(
 invoice_id VARCHAR(30) NOT NULL PRIMARY KEY,
 branch VARCHAR(5) NOT NULL,
 city VARCHAR(30) NOT NULL,
@@ -22,20 +22,20 @@ gross_income DECIMAL(12, 4),
 rating FLOAT(2, 1)
 );
 
-SHOW GLOBAL VARIABLES LIKE 'local_infile';
-SET GLOBAL local_infile = 1;
+-- SHOW GLOBAL VARIABLES LIKE 'local_infile';
+-- SET GLOBAL local_infile = 1;
 
-LOAD DATA LOCAL INFILE 
-'/Users/mohammedshehbazdamkar/Downloads/WalmartSalesData.csv.csv'
-INTO TABLE sales
-FIELDS TERMINATED BY ','
-ENCLOSED BY '"'
-LINES TERMINATED BY '\n'
-IGNORE 1 ROWS;
+-- LOAD DATA LOCAL INFILE 
+-- "/Users/akshay/Local/Projects/SQL-Sales-Data-Analysis/Walmart Sales Data.csv"
+-- INTO TABLE sales
+-- FIELDS TERMINATED BY ','
+-- ENCLOSED BY '"'
+-- LINES TERMINATED BY '\n'
+-- IGNORE 1 ROWS;
 
 
 ------------------- Feature Engineering -----------------------------
-1. Time_of_day
+-- 1. Time_of_day
 
 SELECT time,
 (CASE 
@@ -57,7 +57,7 @@ SET time_of_day = (
 );
 
 
-2.Day_name
+-- 2.Day_name
 
 SELECT date,
 DAYNAME(date) AS day_name
@@ -68,7 +68,7 @@ ALTER TABLE sales ADD COLUMN day_name VARCHAR(10);
 UPDATE sales
 SET day_name = DAYNAME(date);
 
-3.Momth_name
+-- 3.Momth_name
 
 SELECT date,
 MONTHNAME(date) AS month_name
@@ -80,15 +80,15 @@ UPDATE sales
 SET month_name = MONTHNAME(date);
 
 
-----------------Exploratory Data Analysis (EDA)----------------------
-Generic Questions
+-- ----------------Exploratory Data Analysis (EDA)----------------------
+-- Generic Questions
 -- 1.How many distinct cities are present in the dataset?
 SELECT DISTINCT city FROM sales;
 
 -- 2.In which city is each branch situated?
 SELECT DISTINCT branch, city FROM sales;
 
-Product Analysis
+-- Product Analysis
 -- 1.How many distinct product lines are there in the dataset?
 SELECT COUNT(DISTINCT product_line) FROM sales;
 
@@ -124,12 +124,14 @@ FROM sales GROUP BY product_line ORDER BY VAT DESC LIMIT 1;
 
 ALTER TABLE sales ADD COLUMN product_category VARCHAR(20);
 
+SET @avg_total = (SELECT AVG(total) FROM sales);
+-- Now update using the variable
+
 UPDATE sales 
-SET product_category= 
-(CASE 
-	WHEN total >= (SELECT AVG(total) FROM sales) THEN "Good"
-    ELSE "Bad"
-END)FROM sales;
+SET product_category = CASE 
+    WHEN total >= @avg_total THEN 'Good'
+    ELSE 'Bad'
+END;
 
 -- 10.Which branch sold more products than average product sold?
 SELECT branch, SUM(quantity) AS quantity
@@ -144,7 +146,7 @@ SELECT product_line, ROUND(AVG(rating),2) average_rating
 FROM sales GROUP BY product_line ORDER BY average_rating DESC;
 
 
-Sales Analysis
+-- Sales Analysis
 -- 1.Number of sales made in each time of the day per weekday
 SELECT day_name, time_of_day, COUNT(invoice_id) AS total_sales
 FROM sales GROUP BY day_name, time_of_day HAVING day_name NOT IN ('Sunday','Saturday');
@@ -164,7 +166,7 @@ FROM sales GROUP BY city ORDER BY total_VAT DESC LIMIT 1;
 SELECT customer_type, SUM(VAT) AS total_VAT
 FROM sales GROUP BY customer_type ORDER BY total_VAT DESC LIMIT 1;
 
-Customer Analysis
+-- Customer Analysis
 
 -- 1.How many unique customer types does the data have?
 SELECT COUNT(DISTINCT customer_type) FROM sales;
